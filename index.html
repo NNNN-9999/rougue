@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CARD ROGUELIKE</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<button id="sound-toggle" class="sound-toggle" type="button" aria-label="効果音：ON" aria-pressed="true">🔊</button>
+
+<div id="persistent-run-hud" class="persistent-run-hud hidden" aria-live="polite">❤️ <strong id="persistent-run-hp">0 / 0</strong></div>
+<div id="potion-belt" class="potion-belt hidden" aria-label="ポーション"></div>
+
+<div id="game">
+
+    <!--=====================
+        ラン中の所持レリック表示
+    ======================-->
+
+    <aside id="owned-relics-panel" class="owned-relics-panel hidden">
+        <button
+            id="owned-relics-toggle"
+            class="owned-relics-toggle"
+            type="button"
+            aria-expanded="true"
+            aria-controls="owned-relics-list"
+        >
+            <span class="owned-relics-toggle-icon">🧿</span>
+            <span class="owned-relics-toggle-label">所持レリック</span>
+            <span class="owned-relics-toggle-arrow">◀</span>
+        </button>
+
+        <div id="owned-relics-content" class="owned-relics-content">
+            <div class="owned-relics-title">🧿 所持レリック</div>
+            <div id="owned-relics-list" class="owned-relics-list"></div>
+        </div>
+    </aside>
+
+    <!--=====================
+        タイトル
+    ======================-->
+
+    <div id="title-screen">
+
+        <h1>CARD ROGUELIKE</h1>
+
+        <p class="subtitle">
+            Roguelike × Deck Building × Skill Tree
+        </p>
+
+        <button id="start-button">
+            Game Start
+        </button>
+
+        <button id="continue-button" class="secondary-button continue-button hidden">
+            ▶ 続きから
+        </button>
+
+        <button id="skill-tree-button" class="secondary-button">
+            🌳 スキルツリー
+        </button>
+
+        <button id="how-to-play-button" class="secondary-button guide-button">
+            📖 遊び方・用語
+        </button>
+
+        <div class="version">
+            Ver 0.44.0
+        </div>
+
+    </div>
+
+
+    <!--=====================
+        遊び方ガイド（任意）
+    ======================-->
+
+    <div id="how-to-play-modal" class="guide-modal hidden" aria-hidden="true">
+        <div class="guide-modal-card" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+            <button id="how-to-play-close" class="guide-close-button" aria-label="閉じる">×</button>
+
+            <h1 id="guide-title">📖 遊び方・用語</h1>
+            <p class="guide-lead">
+                初めて遊ぶときに分からないところだけ読めばOK。いつでも閉じられます。
+            </p>
+
+            <div class="guide-grid">
+                <section class="guide-section">
+                    <h2>❤️ HP</h2>
+                    <p>0になるとその探索は終了。休憩所・カード・イベントなどで回復できます。</p>
+                </section>
+
+                <section class="guide-section">
+                    <h2>⚡ エナジー</h2>
+                    <p>カードを使うためのポイント。カード左上などのコスト分を消費し、基本は自分のターン開始時に回復します。</p>
+                </section>
+
+                <section class="guide-section">
+                    <h2>🛡️ ブロック</h2>
+                    <p>敵から受けるダメージを先に防ぎます。基本的に次の自分のターンまで持ち越しません。</p>
+                </section>
+
+                <section class="guide-section">
+                    <h2>🃏 山札・手札・捨て札</h2>
+                    <p>山札からカードを引いて手札から使用します。使ったカードは捨て札へ。山札が空になると捨て札を混ぜて新しい山札にします。</p>
+                </section>
+
+                <section class="guide-section">
+                    <h2>⬆️ カード強化</h2>
+                    <p>休憩所では回復の代わりにデッキのカードを1枚強化できます。強化済みカードは名前に「+」が付きます。</p>
+                </section>
+
+                <section class="guide-section">
+                    <h2>💎 レリック</h2>
+                    <p>探索中ずっと効果を発揮する装備。ボスレリックは特に強力ですが、代わりにデメリットがあります。</p>
+                </section>
+
+                <section class="guide-section">
+                    <h2>✨ レアリティ</h2>
+                    <p>COMMON → UNCOMMON → RARE → EPIC → LEGENDARY の順。高レアほど珍しく、強い・特殊な効果を持つカードが増えます。</p>
+                </section>
+            </div>
+
+            <div class="guide-map-legend">
+                <h2>🗺️ ダンジョンのノード</h2>
+                <div class="guide-legend-list">
+                    <span>⚔️ 戦闘</span>
+                    <span>💀 エリート</span>
+                    <span>🔥 休憩所</span>
+                    <span>🛒 ショップ</span>
+                    <span>❓ イベント</span>
+                    <span>🎁 宝箱</span>
+                    <span>👑 ボス</span>
+                </div>
+                <p>ルートを選びながら地下へ潜り、最深部のボスを倒すと次の階層へ進みます。</p>
+            </div>
+
+            <button id="how-to-play-close-bottom" class="guide-bottom-close">
+                閉じる
+            </button>
+        </div>
+    </div>
+
+    <!--=====================
+        キャラクター選択
+    ======================-->
+
+    <div id="character-screen" class="hidden">
+
+        <h1 class="character-title">
+            Character Select
+        </h1>
+
+        <p class="character-subtitle">
+            キャラクターを選択してください
+        </p>
+
+        <!-- CharacterManager.js がここへカードを追加 -->
+        <div id="character-list"></div>
+
+    </div>
+
+    <!--=====================
+        スキルツリー
+    ======================-->
+
+    <div id="skill-tree-screen" class="hidden">
+
+        <h1 class="skill-tree-title">
+            Skill Tree
+        </h1>
+
+        <p id="skill-points-display" class="skill-points-display">
+            使用可能ポイント：0　/　合計獲得：0
+        </p>
+
+        <!-- SkillManager.js がここへノードを追加 -->
+        <div id="skill-tree-area"></div>
+
+        <div class="skill-tree-buttons">
+
+            <button id="skill-reset-button" class="skill-reset-button">
+                🔄 リセット
+            </button>
+
+            <button id="skill-back-button" class="secondary-button">
+                戻る
+            </button>
+
+        </div>
+
+    </div>
+
+    <!--=====================
+        戦闘
+    ======================-->
+
+    <div id="battle-screen" class="hidden">
+
+        <div class="battle-topbar compact">
+            <span id="battle-player-hp" class="battle-top-item">❤️ 0 / 0</span>
+            <span id="battle-gold-indicator" class="battle-top-item">💰 0</span>
+            <span id="battle-floor-indicator" class="battle-top-item">B1</span>
+        </div>
+
+        <button id="battle-guide-button" class="battle-guide-button" type="button" title="戦闘画面の見方">？</button>
+
+        <div id="relic-trigger-feed" class="relic-trigger-feed" aria-live="polite"></div>
+
+        <div class="battle-field">
+
+            <div id="player-area" class="battle-actor player-actor">
+                <div class="player-illustration-shell" aria-hidden="true">
+                    <div id="player-avatar" class="player-avatar">⚔️</div>
+                </div>
+                <div class="player-combat-info">
+                    <div id="player-energy" class="player-resource-row">⚡ 0　🛡️ 0</div>
+                    <div id="player-effects" class="player-effects compact-effects"></div>
+                </div>
+                <h2 id="player-name" class="player-name battle-hidden-label">Player</h2>
+                <p id="player-hp" class="battle-hidden-label">HP: 0 / 0</p>
+                <div class="battle-hp-bar player-hp-bar battle-hidden-label" aria-hidden="true">
+                    <div id="player-hp-bar-fill" class="battle-hp-bar-fill"></div>
+                </div>
+            </div>
+
+            <div id="enemy-field" class="enemy-field" aria-label="敵一覧">
+                <div id="enemy-area" class="battle-actor enemy-actor enemy-unit selected-target" data-enemy-index="0">
+                    <div class="enemy-overhead-ui">
+                        <button id="enemy-passive-indicator" class="enemy-passive-indicator hidden" type="button" aria-label="敵の特性">◆</button>
+                        <p id="enemy-action" class="enemy-intent-icon-only" tabindex="0">⚔️</p>
+                    </div>
+                    <div id="enemy-icon" class="enemy-icon">❔</div>
+                    <div class="battle-hp-bar enemy-hp-bar enemy-hp-inline" aria-label="敵HP">
+                        <div id="enemy-hp-bar-fill" class="battle-hp-bar-fill"></div>
+                        <span id="enemy-hp-inline-text">0 / 0</span>
+                    </div>
+                    <div id="enemy-status-strip" class="enemy-status-strip"></div>
+                    <h2 id="enemy-name" class="battle-hidden-label">Enemy</h2>
+                    <p id="enemy-hp" class="battle-hidden-label">HP: 0 / 0</p>
+                    <div id="enemy-passive" class="enemy-passive hidden battle-hidden-label"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="battle-bottom-zone">
+            <div id="battle-draw-pile" class="battle-corner-pile left-pile"></div>
+
+            <div id="hand"></div>
+
+            <div class="battle-right-controls">
+                <div id="battle-side-piles" class="battle-side-piles"></div>
+                <button id="end-turn">ターン終了</button>
+            </div>
+        </div>
+
+        <div id="battle-deck-status" class="battle-deck-status legacy-hidden"></div>
+
+    </div>
+
+    <!--=====================
+        戦闘画面ガイド（任意）
+    ======================-->
+
+    <div id="battle-guide-overlay" class="battle-guide-overlay hidden" aria-hidden="true">
+        <div class="battle-guide-dim"></div>
+        <div id="battle-guide-focus" class="battle-guide-focus"></div>
+        <div id="battle-guide-card" class="battle-guide-card" role="dialog" aria-modal="true">
+            <div class="battle-guide-step"><span id="battle-guide-step-now">1</span> / <span id="battle-guide-step-total">1</span></div>
+            <h2 id="battle-guide-title">戦闘画面の見方</h2>
+            <p id="battle-guide-text"></p>
+            <div class="battle-guide-actions">
+                <button id="battle-guide-prev" type="button">戻る</button>
+                <button id="battle-guide-close" type="button">閉じる</button>
+                <button id="battle-guide-next" type="button">次へ</button>
+            </div>
+        </div>
+    </div>
+
+    <!--=====================
+        報酬
+    ======================-->
+
+    <div id="reward-screen" class="hidden">
+
+        <h1>
+            Reward
+        </h1>
+
+        <p>
+            カードを1枚選択してください
+        </p>
+
+        <div id="reward-cards"></div>
+
+        <button id="skip-reward">
+            スキップ
+        </button>
+
+    </div>
+
+    <!--=====================
+        マップ
+    ======================-->
+
+    <div id="map-screen" class="hidden">
+
+        <div id="map">
+
+            <div id="map-area"></div>
+
+        </div>
+
+    </div>
+
+    <!--=====================
+        ポップアップ
+    ======================-->
+
+    <div id="popup" class="hidden">
+
+        <div id="popup-box">
+
+            <h2 id="popup-title"></h2>
+
+            <button id="popup-button">
+                次へ
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!--=====================
+    データ
+======================-->
+
+<script src="data/cards.js"></script>
+<script src="data/characters.js"></script>
+<script src="data/enemies.js"></script>
+<script src="data/relics.js"></script>
+<script src="data/potions.js"></script>
+<script src="data/skills.js"></script>
+
+<!--=====================
+    Manager
+======================-->
+
+<script src="manager/SkillManager.js"></script>
+<script src="manager/CharacterManager.js"></script>
+<script src="manager/MapManager.js"></script>
+<script src="manager/ShopManager.js"></script>
+<script src="manager/TitleManager.js"></script>
+<script src="manager/RewardManager.js"></script>
+<script src="manager/SceneManager.js"></script>
+
+<!--=====================
+    Game
+======================-->
+
+<script src="sound.js"></script>
+<script src="status.js"></script>
+<script src="battle.js"></script>
+<script src="ui.js"></script>
+<script src="manager/SaveManager.js"></script>
+<script src="script.js"></script>
+
+</body>
+
+</html>
